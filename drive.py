@@ -34,10 +34,7 @@ class SimplePIController:
         self.set_point = desired
 
     def update(self, measurement):
-        # proportional error
         self.error = self.set_point - measurement
-
-        # integral error
         self.integral += self.error
 
         return self.Kp * self.error + self.Ki * self.integral
@@ -51,13 +48,9 @@ controller.set_desired(set_speed)
 @sio.on('telemetry')
 def telemetry(sid, data):
     if data:
-        # The current steering angle of the car
         steering_angle = data["steering_angle"]
-        # The current throttle of the car
         throttle = data["throttle"]
-        # The current speed of the car
         speed = data["speed"]
-        # The current image from the center camera of the car
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
@@ -68,13 +61,12 @@ def telemetry(sid, data):
         print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
-        # save frame
         if args.image_folder != '':
             timestamp = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
             image_filename = os.path.join(args.image_folder, timestamp)
             image.save('{}.jpg'.format(image_filename))
     else:
-        # NOTE: DON'T EDIT THIS.
+        
         sio.emit('manual', data={}, skip_sid=True)
 
 
@@ -110,7 +102,6 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
-    # check that model Keras version is same as local Keras version
     f = h5py.File(args.model, mode='r')
     model_version = f.attrs.get('keras_version')
     keras_version = str(keras_version).encode('utf8')
