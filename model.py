@@ -1,4 +1,4 @@
-import csv  # CSV library
+import csv  
 import cv2
 from math import ceil
 import numpy as np
@@ -16,17 +16,16 @@ batch_size = 32
 validation_split = 0.2
 correction = 0.2
 
-# Read in each row/line from driving_log.csv
 lines = []
 with open("training_data/driving_log.csv") as csvfile:
     reader = csv.reader(csvfile)
     for line in reader:
         lines.append(line)
 
-# Generator function
+
 def generator(samples, batch_size):
     num_samples = len(samples)
-    while True:  # Loop forever so the generator never terminates
+    while True:  
         shuffle(samples)
         for offset in range(0, num_samples, batch_size):
             batch_samples = samples[offset : offset + batch_size]
@@ -39,7 +38,7 @@ def generator(samples, batch_size):
                     filename = source_path.split("/")[-1]
                     current_path = "training_data/IMG/" + filename
                     image = cv2.imread(current_path)
-                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  
                     images.append(image)
 
                 # Adjusted steering measurements for the side camera images
@@ -47,7 +46,6 @@ def generator(samples, batch_size):
                 steering_left = steering_center + correction
                 steering_right = steering_center - correction
 
-                # Add angles to the dataset
                 measurements.extend([steering_center, steering_left, steering_right])
 
             # Data augmentation (flipping images)
@@ -58,23 +56,20 @@ def generator(samples, batch_size):
                 augmented_measurements.append(measurement)
                 augmented_measurements.append(measurement * -1.0)
 
-            # Convert to numpy arrays
             X_train = np.array(augmented_images)
             y_train = np.array(augmented_measurements)
 
             yield shuffle(X_train, y_train)
 
-# Train-validation split
 train_samples, validation_samples = train_test_split(lines, test_size=validation_split)
 train_generator = generator(train_samples, batch_size=batch_size)
 validation_generator = generator(validation_samples, batch_size=batch_size)
 
-# Build the Neural Network Model (NVIDIA Architecture)
 model = Sequential([
-    Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160, 320, 3)),  # Normalize and mean-center
-    Cropping2D(cropping=((75, 25), (0, 0))),  # Crop 75px from the top and 25px from the bottom
+    Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160, 320, 3)),  
+    Cropping2D(cropping=((75, 25), (0, 0))), 
 
-    # Convolutional layers
+    
     Conv2D(24, (5, 5), activation="relu"),
     MaxPooling2D(),
     Dropout(0.5),
@@ -92,20 +87,18 @@ model = Sequential([
 
     Flatten(),
 
-    # Fully connected layers
+    
     Dense(100, activation="relu"),
     Dense(50, activation="relu"),
     Dense(10, activation="relu"),
-    Dense(1)  # Single output node for steering angle
+    Dense(1)  
 ])
 
-# Model Summary
+
 model.summary()
 
-# Compile Model
 model.compile(loss="mse", optimizer=Adam())
 
-# Train Model (Replaces `fit_generator`)
 history = model.fit(
     train_generator,
     steps_per_epoch=ceil(len(train_samples) / batch_size),
@@ -115,7 +108,6 @@ history = model.fit(
     verbose=1,
 )
 
-# Save the trained model
 model.save("model.h5")
 
 # Plot Training Loss
